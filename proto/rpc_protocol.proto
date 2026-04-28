@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package rpc;
+
+// RPC 请求消息
+message RpcRequest {
+    string service_name = 1;      // 服务名称
+    string method_name = 2;       // 方法名称
+    bytes request_data = 3;       // 请求参数数据
+    uint64 request_id = 4;        // 请求ID（用于异步回调）
+}
+
+// RPC 响应消息
+message RpcResponse {
+    int32 status_code = 1;        // 状态码（0=成功）
+    string status_message = 2;    // 状态消息
+    bytes response_data = 3;      // 响应数据
+    uint64 request_id = 4;        // 对应的请求ID
+}
+
+// 服务注册请求
+message RegisterRequest {
+    string service_name = 1;
+    string host = 2;
+    uint32 port = 3;
+    map<string, string> metadata = 4;
+}
+
+// 服务注册响应
+message RegisterResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// 服务发现请求
+message DiscoverRequest {
+    string service_name = 1;
+}
+
+// 服务端点信息
+message ServiceEndpoint {
+    string service_name = 1;
+    string host = 2;
+    uint32 port = 3;
+    bool is_healthy = 4;
+    int64 last_heartbeat = 5;
+}
+
+// 服务发现响应
+message DiscoverResponse {
+    repeated ServiceEndpoint endpoints = 1;
+}
+
+// 心跳消息
+message Heartbeat {
+    string service_name = 1;
+    string host = 2;
+    uint32 port = 3;
+    int64 timestamp = 4;
+}
+
+// 通用消息包装器
+message RpcMessage {
+    MessageType type = 1;
+    oneof payload {
+        RpcRequest rpc_request = 2;
+        RpcResponse rpc_response = 3;
+        RegisterRequest register_request = 4;
+        RegisterResponse register_response = 5;
+        DiscoverRequest discover_request = 6;
+        DiscoverResponse discover_response = 7;
+        Heartbeat heartbeat = 8;
+    }
+}
+
+enum MessageType {
+    UNKNOWN = 0;
+    RPC_REQUEST = 1;
+    RPC_RESPONSE = 2;
+    REGISTER_REQUEST = 3;
+    REGISTER_RESPONSE = 4;
+    DISCOVER_REQUEST = 5;
+    DISCOVER_RESPONSE = 6;
+    HEARTBEAT = 7;
+}
