@@ -8,16 +8,16 @@ set(PROTO_FILES ${COMMON_PROTO_DIR}/rpc_protocol.proto)
 # 生成 Protocol Buffers 源文件
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
-# 添加生成的源文件目录以避免找不到头文件
+# 创建公共库
+add_library(common STATIC
+    ${PROTO_SRCS}
+)
+
+# 包含目录
 target_include_directories(common PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${Protobuf_INCLUDE_DIRS}
-)
-
-# 创建公共库
-add_library(common STATIC
-    ${PROTO_SRCS}
 )
 
 # 链接 Protobuf
