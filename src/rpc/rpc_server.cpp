@@ -203,7 +203,7 @@ void RpcServer::acceptConnection() {
         size_t consumed = 0;
 
         if (codec::MessageCodec::decodeMessage(data, message, consumed)) {
-            if (message.type() == protocol::RpcMessage::REQUEST) {
+            if (message.type() == protocol::RpcMessage::RPC_REQUEST) {
                 handleRequest(conn, message);
             }
             // 可以添加对其他消息类型的处理
@@ -241,13 +241,15 @@ void RpcServer::handleRequest(std::shared_ptr<net::TcpConnection> conn,
     std::lock_guard<std::mutex> lock(services_mutex_);
 
     // 查找服务
-    auto service_it = services_.find(request.service_name());
+    auto service_it = services_.find(request.rpc_request().service_name());
     if (service_it == services_.end()) {
         // 服务不存在
         protocol::RpcMessage response;
-        response.set_id(request.id());
-        response.set_type(protocol::RpcMessage::RESPONSE);
-        response.set_response_data("Service not found: " + request.service_name());
+        auto* rpc_response = response.mutable_rpc_response();
+        rpc_response->set_request_id(request.rpc_request().request_id());
+        rpc_response->set_status_code(1);
+        rpc_response->set_status_message("Service not found: " + request.rpc_request().service_name());
+        response.set_type(protocol::RpcMessage::RPC_RESPONSE);
 
         std::string response_data;
         response.SerializeToString(&response_data);
@@ -258,13 +260,15 @@ void RpcServer::handleRequest(std::shared_ptr<net::TcpConnection> conn,
     }
 
     // 查找方法
-    auto method_it = service_it->second.find(request.method_name());
+    auto method_it = service_it->second.find(request.rpc_request().method_name());
     if (method_it == service_it->second.end()) {
         // 方法不存在
         protocol::RpcMessage response;
-        response.set_id(request.id());
-        response.set_type(protocol::RpcMessage::RESPONSE);
-        response.set_response_data("Method not found: " + request.method_name());
+        auto* rpc_response = response.mutable_rpc_response();
+        rpc_response->set_request_id(request.rpc_request().request_id());
+        rpc_response->set_status_code(1);
+        rpc_response->set_status_message("Method not found: " + request.rpc_request().method_name());
+        response.set_type(protocol::RpcMessage::RPC_RESPONSE);
 
         std::string response_data;
         response.SerializeToString(&response_data);
@@ -276,13 +280,16 @@ void RpcServer::handleRequest(std::shared_ptr<net::TcpConnection> conn,
 
     // 调用处理函数
     try {
-        std::string result = method_it->second(request.request_data());
+        std::string result = method_it->second(request.rpc_request().request_data());
 
         // 返回响应
         protocol::RpcMessage response;
-        response.set_id(request.id());
-        response.set_type(protocol::RpcMessage::RESPONSE);
-        response.set_response_data(result);
+        auto* rpc_response = response.mutable_rpc_response();
+        rpc_response->set_request_id(request.rpc_request().request_id());
+        rpc_response->set_status_code(0);
+        rpc_response->set_status_message("Success");
+        rpc_response->set_response_data(result);
+        response.set_type(protocol::RpcMessage::RPC_RESPONSE);
 
         std::string response_data;
         response.SerializeToString(&response_data);
@@ -290,14 +297,16 @@ void RpcServer::handleRequest(std::shared_ptr<net::TcpConnection> conn,
         auto encoded = codec::MessageCodec::encodeMessage(response);
         conn->sendMessage(encoded);
 
-        std::cout << "Handled request: " << request.service_name() << "."
-                  << request.method_name() << " from " << conn->getPeerAddress() << std::endl;
+        std::cout << "Handled request: " << request.rpc_request().service_name() << "."
+                  << request.rpc_request().method_name() << " from " << conn->getPeerAddress() << std::endl;
     } catch (const std::exception& e) {
         // 处理异常
         protocol::RpcMessage response;
-        response.set_id(request.id());
-        response.set_type(protocol::RpcMessage::RESPONSE);
-        response.set_response_data("Error: " + std::string(e.what()));
+        auto* rpc_response = response.mutable_rpc_response();
+        rpc_response->set_request_id(request.rpc_request().request_id());
+        rpc_response->set_status_code(1);
+        rpc_response->set_status_message("Error: " + std::string(e.what()));
+        response.set_type(protocol::RpcMessage::RPC_RESPONSE);
 
         std::string response_data;
         response.SerializeToString(&response_data);

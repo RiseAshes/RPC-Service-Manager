@@ -58,7 +58,7 @@ private:
 
     // 处理请求消息
     void handleRequest(std::shared_ptr<net::TcpConnection> conn,
-                      const protocol::RpcMessage& request);
+                      const rpc::RpcMessage& request);
 
     int listen_fd_;
     uint16_t port_;

@@ -100,7 +100,7 @@ std::string RpcClient::callSync(const std::string& service_name,
 
     // 创建承诺
     auto promise = std::make_shared<ResponsePromise>();
-    uint64_t request_id = request.id();
+    uint64_t request_id = request.rpc_request().request_id();
     pending_requests_[request_id] = promise;
 
     // 发送请求
@@ -137,7 +137,7 @@ void RpcClient::callAsync(const std::string& service_name,
     auto encoded = codec::MessageCodec::encodeMessage(request);
 
     // 创建回调包装
-    uint64_t request_id = request.id();
+    uint64_t request_id = request.rpc_request().request_id();
     auto promise = std::make_shared<ResponsePromise>();
     pending_requests_[request_id] = promise;
     async_callbacks_[request_id] = callback;
@@ -202,11 +202,12 @@ protocol::RpcMessage RpcClient::createRequest(const std::string& service_name,
                                                const std::string& method_name,
                                                const std::string& request_data) {
     protocol::RpcMessage request;
-    request.set_id(next_request_id_++);
-    request.set_type(protocol::RpcMessage::REQUEST);
-    request.set_service_name(service_name);
-    request.set_method_name(method_name);
-    request.set_request_data(request_data);
+    auto* rpc_request = request.mutable_rpc_request();
+    rpc_request->set_service_name(service_name);
+    rpc_request->set_method_name(method_name);
+    rpc_request->set_request_data(request_data);
+    rpc_request->set_request_id(next_request_id_++);
+    request.set_type(protocol::RpcMessage::RPC_REQUEST);
     return request;
 }
 
@@ -220,7 +221,7 @@ void RpcClient::handleResponse(const std::string& data) {
         return;
     }
 
-    uint64_t request_id = response.id();
+    uint64_t request_id = response.rpc_response().request_id();
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -234,12 +235,12 @@ void RpcClient::handleResponse(const std::string& data) {
         auto callback_it = async_callbacks_.find(request_id);
         if (callback_it != async_callbacks_.end()) {
             if (callback_it->second) {
-                callback_it->second(response.response_data());
+                callback_it->second(response.rpc_response().response_data());
             }
             async_callbacks_.erase(callback_it);
         } else {
             // 同步调用，解析结果
-            it->second->resolve(response.response_data());
+            it->second->resolve(response.rpc_response().response_data());
         }
     }
 }

@@ -72,9 +72,9 @@ public:
 
 private:
     // 创建请求消息
-    protocol::RpcMessage createRequest(const std::string& service_name,
-                                      const std::string& method_name,
-                                      const std::string& request_data);
+    rpc::RpcMessage createRequest(const std::string& service_name,
+                                  const std::string& method_name,
+                                  const std::string& request_data);
 
     // 处理响应消息
     void handleResponse(const std::string& data);

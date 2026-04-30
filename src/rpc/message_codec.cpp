@@ -100,7 +100,7 @@ bool MessageCodec::decodeMessage(const std::string& data,
     }
 
     // 设置消息类型
-    message.set_type(static_cast<protocol::RpcMessage_Type>(type));
+    message.set_type(static_cast<protocol::RpcMessage::MessageType>(type));
 
     // 记录已消耗的字节数
     consumed = 16 + length;

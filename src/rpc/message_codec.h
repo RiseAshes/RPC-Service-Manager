@@ -10,11 +10,11 @@ namespace codec {
 class MessageCodec {
 public:
     // 编码消息（添加消息头）
-    static std::string encodeMessage(const protocol::RpcMessage& message);
+    static std::string encodeMessage(const rpc::RpcMessage& message);
 
     // 解码消息（验证消息头并解析）
     static bool decodeMessage(const std::string& data,
-                            protocol::RpcMessage& message,
+                            rpc::RpcMessage& message,
                             size_t& consumed);
 
     // 检查数据是否包含完整消息
